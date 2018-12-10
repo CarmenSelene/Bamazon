@@ -10,10 +10,24 @@ var connection = mysql.createConnection({
   database: "bamazon"
 });
 
-connection.connect(function(err) {
-  if (err) throw err;
-  start();
-});
+let product_name;
+let price;
+let stock_quantity;
+
+connection.query(
+  "SELECT product_name, price, stock_quantity FROM products",
+  function(err, result, fields) {
+    if (err) console.log("Oops... Something went wrong");
+    console.log("*****");
+    console.log("WELCOME TO SARYN'S YUMMIES - WHOLESALE ORDER PLATFORM");
+    console.log("PRODUCT NAME --- PRICE / KG --- STOCK")
+    console.log("*****");
+    for (i=0; i<result.length; i++) {
+        console.log(" | " + result[i].product_name," | " +  result[i].price," | " +  result[i].stock_quantity);
+    }
+    start();
+  }
+);
 
 function start() {
   inq
@@ -36,31 +50,19 @@ function start() {
       }
     ])
     .then(function(answer) {
-      console.log("*****");
-      console.log("Avaliable Stock: ");
-      console.log("*****");
-      con.connect(function(err) {
-        if (err) throw err;
-        con.query("SELECT * FROM products", function(err, result, fields) {
+      connection.query(
+        "SELECT * FROM products",
+        {
+          item_ID: answer.item_id,
+          product_name: answer.product_name,
+          department_name: answer.department_name,
+          price: answer.price,
+          stock_quantity: answer.stock_quantity
+        },
+        function(err) {
           if (err) throw err;
-          console.log(result);
-        });
-        console.log(answer);
-      });
-        con.query(
-          "SELECT * FROM products",
-          {
-            item_ID: answer.item_id,
-            product_name: answer.product_name,
-            department_name: answer.department_name,
-            price: answer.price,
-            stock_quantity: answer.stock_quantity
-          },
-          function(err) {
-            if (err) throw err;
-            console.log("Order Placed! Thank You For Your Business");
-            start();
-          }
-        );
+        }
+      );
+      console.log(answer);
     });
 }
