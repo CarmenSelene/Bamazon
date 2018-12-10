@@ -1,7 +1,6 @@
 var mysql = require("mysql");
 var inq = require("inquirer");
 
-// create the connection information for the sql database
 var connection = mysql.createConnection({
   host: "localhost",
   port: 3306,
@@ -10,24 +9,75 @@ var connection = mysql.createConnection({
   database: "bamazon"
 });
 
+let item_id;
 let product_name;
 let price;
 let stock_quantity;
 
-connection.query(
-  "SELECT product_name, price, stock_quantity FROM products",
-  function(err, result, fields) {
-    if (err) console.log("Oops... Something went wrong");
-    console.log("*****");
-    console.log("WELCOME TO SARYN'S YUMMIES - WHOLESALE ORDER PLATFORM");
-    console.log("PRODUCT NAME --- PRICE / KG --- STOCK")
-    console.log("*****");
-    for (i=0; i<result.length; i++) {
-        console.log(" | " + result[i].product_name," | " +  result[i].price," | " +  result[i].stock_quantity);
+let resetInterface = function() {
+  connection.query(
+    "SELECT item_id, product_name, price, stock_quantity FROM products",
+    function(err, result, fields) {
+      if (err) console.log("Oops... Something went wrong");
+      console.log("*******************************************************");
+      console.log("WELCOME TO SARYN'S YUMMIES --- WHOLESALE ORDER PLATFORM");
+      console.log("PRODUCT ID --- PRODUCT NAME --- $PRICE/KG --- STOCK AVA");
+      console.log("*******************************************************");
+      for (i = 0; i < result.length; i++) {
+        let nameWidth = 20;
+        let priceWidth = 5;
+        let stockWidth = 4;
+        let display_ID = result[i].item_id;
+        if (display_ID <= 9) {
+          display_ID = "0" + display_ID;
+        }
+        let display_name = result[i].product_name;
+        let display_price = result[i].price;
+        let display_stock = result[i].stock_quantity;
+        let addSpaceName = function() {
+          if (display_name.length >= nameWidth) {
+            return;
+          } else {
+            display_name = display_name + " ";
+            addSpaceName();
+          }
+        };
+        let addSpacePrice = function() {
+          if (display_price.length >= priceWidth) {
+            return;
+          } else {
+            display_price = display_price + " ";
+            addSpacePrice();
+          }
+        };
+        let addSpaceStock = function() {
+          if (display_stock.length >= stockWidth) {
+            return;
+          } else {
+            display_stock = display_stock + " ";
+            addSpaceStock();
+          }
+        };
+        addSpaceName();
+        addSpacePrice();
+        addSpaceStock();
+        let mainDisplay =
+          " * ID# " +
+          display_ID +
+          " | " +
+          display_name +
+          "| $" +
+          display_price +
+          " | " +
+          display_stock +
+          " *";
+        console.log(mainDisplay);
+      }
+      start();
     }
-    start();
-  }
-);
+  );
+  return;
+};
 
 function start() {
   inq
@@ -35,7 +85,13 @@ function start() {
       {
         name: "whatID",
         type: "input",
-        message: "Please input the item ID to place your purchase"
+        message: "Please input the item ID to place your purchase",
+        validate: function(value) {
+          if (isNaN(value) === false) {
+            return true;
+          }
+          return false;
+        }
       },
       {
         name: "howMany",
@@ -51,18 +107,37 @@ function start() {
     ])
     .then(function(answer) {
       connection.query(
-        "SELECT * FROM products",
-        {
-          item_ID: answer.item_id,
-          product_name: answer.product_name,
-          department_name: answer.department_name,
-          price: answer.price,
-          stock_quantity: answer.stock_quantity
-        },
-        function(err) {
-          if (err) throw err;
+        "SELECT * FROM products WHERE 'item_id' = ? ",
+        [answer.whatID],
+        function(err, resultProcessed) {
+          if (err) console.log("Oops... Something went wrong");
+          console.log(resultProcessed);
         }
       );
-      console.log(answer);
+      console.log(answer.howMany);
+      newOrder();
+    });
+}
+
+resetInterface();
+
+function newOrder() {
+  inq
+    .prompt([
+      {
+        name: "restart",
+        type: "confirm",
+        message: "   ***      Place Another Order?       ***   ",
+        default: true
+      }
+    ])
+    .then(function(answer) {
+      if (answer.restart === true) {
+        resetInterface();
+      } else {
+        console.log("   ***   Thank You For Your Business   ***   ");
+        console.log("   ***         See You Soon!           ***   ");
+        connection.end();
+      }
     });
 }
