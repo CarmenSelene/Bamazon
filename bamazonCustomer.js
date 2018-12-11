@@ -59,6 +59,14 @@ let resetInterface = function() {
             addSpaceStock();
           }
         };
+        let catchLowStock = function() {
+          if (display_stock <= 0) {
+            display_stock = "B/O"
+          } else if (display_stock < 100) {
+            display_stock = "LOW"
+          }
+        };
+        catchLowStock();
         addSpaceName();
         addSpacePrice();
         addSpaceStock();
@@ -118,11 +126,17 @@ function start() {
             selectedProduct = results[i];
           }
         }
+        if (selectedProduct.stock_quantity <= 0) {
+          console.log("Sorry Item On BackOrder");
+          start();
+          return;
+        } 
+        if (selectedProduct.stock_quantity <= 100) {
+          console.log("Stock Low Please Allow Extra Delivery Time");
+        } 
         convertedQuan = [
           selectedProduct.stock_quantity - parseInt(answer.howMany)
         ];
-        console.log("This is convertedQuan: " + convertedQuan);
-        console.log("This is selectedProduct: " + selectedProduct);
         let updateDB = function() {
           connection.query(
             "UPDATE products SET ? WHERE ?",
@@ -140,7 +154,8 @@ function start() {
           );
         }
         updateDB();
-        console.log("Bid placed successfully!");
+        console.log("You bought [" + answer.howMany + "] of [" + selectedProduct.product_name);
+        console.log("Order placed successfully!");
         newOrder();
       });
   });
