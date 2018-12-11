@@ -6,7 +6,7 @@ var connection = mysql.createConnection({
   port: 3306,
   user: "root",
   password: "password",
-  database: "bamazon", 
+  database: "bamazon",
   multipleStatements: true
 });
 
@@ -83,52 +83,67 @@ let resetInterface = function() {
 resetInterface();
 
 function start() {
-  inq
-    .prompt([
-      {
-        name: "whatID",
-        type: "input",
-        message: "Please input the item ID to place your purchase",
-        validate: function(value) {
-          if (isNaN(value) === false) {
-            return true;
-          }
-          return false;
-        }
-      },
-      {
-        name: "howMany",
-        type: "input",
-        message: "Please enter the volume of items to be purchased",
-        validate: function(value) {
-          if (isNaN(value) === false) {
-            return true;
-          }
-          return false;
-        }
-      }
-    ])
-    .then(function(answer) {
-      let changeDB = function() {
-        connection.query(
-          "UPDATE products SET ? WHERE ?",
-          [
-            {
-              stock_quantity: answer.howMany
-            },
-            {
-              item_id: answer.whatID
+  connection.query("SELECT * FROM products", function(err, results) {
+    if (err) throw err;
+    inq
+      .prompt([
+        {
+          name: "whatID",
+          type: "input",
+          message: "Please input the item ID to place your purchase",
+          validate: function(value) {
+            if (isNaN(value) === false) {
+              return true;
             }
-          ],
-          function(err) {
-            if (err) throw err;
+            return false;
           }
-        );
+        },
+        {
+          name: "howMany",
+          type: "input",
+          message: "Please enter the volume of items to be purchased",
+          validate: function(value) {
+            if (isNaN(value) === false) {
+              return true;
+            }
+            return false;
+          }
+        }
+      ])
+      .then(function(answer) {
+        let selectedProduct;
+        let convertedQuan;
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].item_id == answer.whatID) {
+            selectedProduct = results[i];
+          }
+        }
+        convertedQuan = [
+          selectedProduct.stock_quantity - parseInt(answer.howMany)
+        ];
+        console.log("This is convertedQuan: " + convertedQuan);
+        console.log("This is selectedProduct: " + selectedProduct);
+        let updateDB = function() {
+          connection.query(
+            "UPDATE products SET ? WHERE ?",
+            [
+              {
+                stock_quantity: convertedQuan
+              },
+              {
+                item_id: selectedProduct.item_id
+              }
+            ],
+            function(err) {
+              if (err) throw err;
+            }
+          );
+        }
+        updateDB();
         console.log("Bid placed successfully!");
         newOrder();
-      };
-      changeDB();
-    });
+      });
+  });
 }
 
 function newOrder() {
