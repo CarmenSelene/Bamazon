@@ -79,6 +79,8 @@ let resetInterface = function() {
   return;
 };
 
+resetInterface();
+
 function start() {
   inq
     .prompt([
@@ -106,20 +108,46 @@ function start() {
       }
     ])
     .then(function(answer) {
-      connection.query(
-        "SELECT * FROM products WHERE 'item_id' = ? ",
-        [answer.whatID],
-        function(err, resultProcessed) {
-          if (err) console.log("Oops... Something went wrong");
-          console.log(resultProcessed);
-        }
-      );
-      console.log(answer.howMany);
-      newOrder();
+
+// Currently Here - whichOne below outputs the correct value, but when the string is passed to mysql it returns an inproper query
+
+      let whichOne = toString(answer.whatID);
+      function checkDB() {
+        let getStock = ["SELECT * FROM products WHERE item_id = " + whichOne];
+        console.log(getStock);
+        connection.query(getStock, function(err, result) {
+          if (err) throw err;
+          console.log(result);
+          // changeDB(x, result);
+        });
+      }
+      checkDB();
+      console.log(" *** ");
     });
 }
 
-resetInterface();
+// Still Needed - Next Section (Possibly) after above 
+
+
+// let changeDB = function(x, y) {
+//   let editStock = ["UPDATE products SET ? WHERE ?"];
+//   connection.query(
+//     editStock,
+//     [
+//       {
+//         stock_quantity: y
+//       },
+//       {
+//         item_id: x
+//       }
+//     ],
+//     function(error) {
+//       if (error) throw err;
+//       console.log("Bid placed successfully!");
+//       newOrder();
+//     }
+//   );
+// };
 
 function newOrder() {
   inq
@@ -127,8 +155,7 @@ function newOrder() {
       {
         name: "restart",
         type: "confirm",
-        message: "   ***      Place Another Order?       ***   ",
-        default: true
+        message: "   ***      Place Another Order?       ***   "
       }
     ])
     .then(function(answer) {
