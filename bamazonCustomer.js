@@ -6,13 +6,14 @@ var connection = mysql.createConnection({
   port: 3306,
   user: "root",
   password: "password",
-  database: "bamazon"
+  database: "bamazon", 
+  multipleStatements: true
 });
 
-let item_id;
-let product_name;
-let price;
-let stock_quantity;
+// let item_id;
+// let product_name;
+// let price;
+// let stock_quantity;
 
 let resetInterface = function() {
   connection.query(
@@ -108,46 +109,27 @@ function start() {
       }
     ])
     .then(function(answer) {
-
-// Currently Here - whichOne below outputs the correct value, but when the string is passed to mysql it returns an inproper query
-
-      let whichOne = toString(answer.whatID);
-      function checkDB() {
-        let getStock = ["SELECT * FROM products WHERE item_id = " + whichOne];
-        console.log(getStock);
-        connection.query(getStock, function(err, result) {
-          if (err) throw err;
-          console.log(result);
-          // changeDB(x, result);
-        });
-      }
-      checkDB();
-      console.log(" *** ");
+      let changeDB = function() {
+        connection.query(
+          "UPDATE products SET ? WHERE ?",
+          [
+            {
+              stock_quantity: answer.howMany
+            },
+            {
+              item_id: answer.whatID
+            }
+          ],
+          function(err) {
+            if (err) throw err;
+          }
+        );
+        console.log("Bid placed successfully!");
+        newOrder();
+      };
+      changeDB();
     });
 }
-
-// Still Needed - Next Section (Possibly) after above 
-
-
-// let changeDB = function(x, y) {
-//   let editStock = ["UPDATE products SET ? WHERE ?"];
-//   connection.query(
-//     editStock,
-//     [
-//       {
-//         stock_quantity: y
-//       },
-//       {
-//         item_id: x
-//       }
-//     ],
-//     function(error) {
-//       if (error) throw err;
-//       console.log("Bid placed successfully!");
-//       newOrder();
-//     }
-//   );
-// };
 
 function newOrder() {
   inq
