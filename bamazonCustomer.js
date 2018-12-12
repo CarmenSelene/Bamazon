@@ -1,7 +1,7 @@
-var mysql = require("mysql");
-var inq = require("inquirer");
+let mysql = require("mysql");
+let inq = require("inquirer");
 
-var connection = mysql.createConnection({
+let connection = mysql.createConnection({
   host: "localhost",
   port: 3306,
   user: "root",
@@ -10,12 +10,7 @@ var connection = mysql.createConnection({
   multipleStatements: true
 });
 
-// let item_id;
-// let product_name;
-// let price;
-// let stock_quantity;
-
-let resetInterface = function() {
+let customerInterface = function() {
   connection.query(
     "SELECT item_id, product_name, price, stock_quantity FROM products",
     function(err, result, fields) {
@@ -61,9 +56,9 @@ let resetInterface = function() {
         };
         let catchLowStock = function() {
           if (display_stock <= 0) {
-            display_stock = "B/O"
+            display_stock = "B/O";
           } else if (display_stock < 100) {
-            display_stock = "LOW"
+            display_stock = "LOW";
           }
         };
         catchLowStock();
@@ -88,7 +83,68 @@ let resetInterface = function() {
   return;
 };
 
-resetInterface();
+function onLoad() {
+  console.log("*******************************************************");
+  console.log("WELCOME TO SARYN'S YUMMIES --- WHOLESALE ORDER PLATFORM");
+  console.log("*******************************************************");
+  connection.query("SELECT * FROM products", function(err, results) {
+    if (err) throw err;
+    inq
+      .prompt([
+        {
+          name: "loginID",
+          type: "input",
+          message: "UserID: "
+        },
+        {
+          name: "password",
+          type: "input",
+          message: "Password: "
+        }
+      ])
+      .then(function(answer) {
+        if (
+          answer.loginID === "saryn" ||
+          ("Saryn" && answer.password === "manager")
+        ) {
+          managerInterface();
+        } else if (answer.loginID === "guest" && answer.password === "12345") {
+          console.log("");
+          customerInterface();
+        } else {
+          console.log(
+            "User ID or password combination not recognized please try again."
+          );
+          onLoad();
+        }
+      });
+  });
+}
+
+function managerInterface() {
+  console.log("Welcome Saryn!");
+  console.log("Loading Managers Interface");
+  connection.query("SELECT * FROM products", function(err, results) {
+    if (err) throw err;
+    inq
+      .prompt([
+        {
+          name: "managerOptions",
+          type: "rawlist",
+          message: "Select A Report",
+          choices: function() {
+            var pullReports = ["Current Products", "Low Inventory Alerts", "Add Inventory", "Add Product"];
+            return pullReports;
+          }
+        }
+      ])
+      .then(function(answer) {
+        console.log("it worked" + answer.managerOptions);
+      });
+  });
+}
+
+onLoad();
 
 function start() {
   connection.query("SELECT * FROM products", function(err, results) {
@@ -130,10 +186,10 @@ function start() {
           console.log("Sorry Item On BackOrder");
           start();
           return;
-        } 
+        }
         if (selectedProduct.stock_quantity <= 100) {
           console.log("Stock Low Please Allow Extra Delivery Time");
-        } 
+        }
         convertedQuan = [
           selectedProduct.stock_quantity - parseInt(answer.howMany)
         ];
@@ -152,10 +208,22 @@ function start() {
               if (err) throw err;
             }
           );
-        }
+        };
         updateDB();
-        console.log("You bought [" + answer.howMany + "] of [" + selectedProduct.product_name);
+        let costTotal = [answer.howMany * selectedProduct.price];
         console.log("Order placed successfully!");
+        console.log(
+          "You bought [" +
+            answer.howMany +
+            "] of [" +
+            selectedProduct.product_name +
+            "]"
+        );
+        console.log(
+          "Total Before Taxes = $" +
+            costTotal +
+            ". Successfully Charged To Account."
+        );
         newOrder();
       });
   });
@@ -172,7 +240,7 @@ function newOrder() {
     ])
     .then(function(answer) {
       if (answer.restart === true) {
-        resetInterface();
+        customerInterface();
       } else {
         console.log("   ***   Thank You For Your Business   ***   ");
         console.log("   ***         See You Soon!           ***   ");
