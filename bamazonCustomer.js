@@ -1,5 +1,6 @@
 let mysql = require("mysql");
 let inq = require("inquirer");
+let showInventory = require("showInventory.js")
 
 let connection = mysql.createConnection({
   host: "localhost",
@@ -7,10 +8,10 @@ let connection = mysql.createConnection({
   user: "root",
   password: "password",
   database: "bamazon",
-  multipleStatements: true
+  // multipleStatements: true
 });
 
-let customerInterface = function() {
+let showInventory = function() {
   connection.query(
     "SELECT item_id, product_name, price, stock_quantity FROM products",
     function(err, result, fields) {
@@ -122,7 +123,7 @@ function onLoad() {
           managerInterface();
         } else if (answer.loginID === "guest") {
           console.log("");
-          customerInterface();
+          showInventory();
         } else {
           console.log("* User ID/Password combination not recognized. *");
           onLoad();
@@ -141,7 +142,7 @@ function managerInterface() {
           type: "list",
           message: "Select A Report",
           choices: function() {
-            var pullReports = [
+            let pullReports = [
               "Current Products",
               "Low Inventory Alerts",
               "Add Inventory",
@@ -151,18 +152,21 @@ function managerInterface() {
           }
         }
       ])
-      .then(function(answer) {
+      .then(async function(answer) {
+        
         if (answer.managerOptions === "Current Products") {
           connection.query("SELECT product_name FROM products", function(
             err,
             results
           ) {
+            
             if (err) throw err;
             console.log(results);
             console.log(" ");
             managerInterface();
           });
         } else if (answer.managerOptions === "Low Inventory Alerts") {
+          
           connection.query(
             "SELECT product_name, stock_quantity FROM products",
             function(err, results) {
@@ -177,29 +181,24 @@ function managerInterface() {
             }
           );
         } else if (answer.managerOptions === "Add Inventory") {
+          
           if (err) throw err;
           console.log(" ");
-          inq
+          await inq
             .prompt([
               {
                 name: "product_name",
                 type: "rawlist",
                 pageSize: 15,
                 choices: function() {
-                  var choiceArray = [];
-                  for (var i = 0; i < results.length; i++) {
+                  let choiceArray = [];
+                  for (let i = 0; i < results.length; i++) {
                     choiceArray.push(results[i].product_name);
                   }
+                  
                   return choiceArray;
                 },
                 message: "Which Product From Inventory To Edit?",
-                validate: function(value) {
-                  if (value === true) {
-                    return true;
-                  } else {
-                    return false;
-                  }
-                }
               },
               {
                 name: "stock_quantity",
@@ -215,6 +214,7 @@ function managerInterface() {
               }
             ])
             .then(function(answer) {
+              
               let selectedProduct;
               for (let i = 0; i < results.length; i++) {
                 if (results[i].product_name === answer.product_name) {
@@ -242,9 +242,10 @@ function managerInterface() {
             });
           managerInterface();
         } else if (answer.managerOptions === "Add Product") {
+          
           if (err) throw err;
           console.log(" ");
-          inq
+          await inq
             .prompt([
               {
                 name: "product_name",
@@ -252,9 +253,32 @@ function managerInterface() {
                 message: "Submit Product Name"
               },
               {
+                name: "department_name",
+                type: "list",
+                message: "Select Department Tag",
+                pageSize: 15,
+                choices: function() {
+                  let choiceArray = [];
+                  for (let i = 0; i < results.length; i++) {
+                    choiceArray.push(results[i].department_name);
+                  }
+                  let format = choiceArray.filter(function(item, index){
+                    return choiceArray.indexOf(item) >= index;
+                  });
+                  let formattedChoices = Array.from(new Set(format));
+                  return formattedChoices;
+                }
+              },
+              {
                 name: "price",
                 type: "input",
-                message: "Submit $/kg"
+                message: "Submit $/kg",
+                validate: function(value) {
+                  if (isNaN(value) === false && value.length < 5) {
+                    return true;
+                  }
+                  return false;
+                }        
               },
               {
                 name: "stock_quantity",
@@ -266,19 +290,21 @@ function managerInterface() {
               connection.query(
                 "INSERT INTO products SET ?",
                 {
-                  product_name: product_name,
-                  price: price,
-                  stock_quantity: stock_quantity
+                  product_name: answer.product_name,
+                  department_name: answer.department_name,
+                  price: answer.price,
+                  stock_quantity: answer.stock_quantity
                 },
                 function(err) {
                   if (err) throw err;
                   console.log("* Product Successfully Created *");
+                  
                 }
               );
             });
           managerInterface();
         } else {
-          console.clear();
+          
           console.log("Error: Input not recognized, please try again.");
           console.log(" ");
           managerInterface();
@@ -383,7 +409,7 @@ function newOrder() {
     ])
     .then(function(answer) {
       if (answer.restart === true) {
-        customerInterface();
+        showInventory();
       } else {
         console.log("     ***   Thank You For Your Business   ***   ");
         console.log("     ***         See You Soon!           ***   ");
