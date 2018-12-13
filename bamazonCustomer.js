@@ -1,13 +1,13 @@
 let mysql = require("mysql");
 let inq = require("inquirer");
-let showInventory = require("showInventory.js")
+let managerInterface = require("./managerInterface.js");
 
 let connection = mysql.createConnection({
   host: "localhost",
   port: 3306,
   user: "root",
   password: "password",
-  database: "bamazon",
+  database: "bamazon"
   // multipleStatements: true
 });
 
@@ -86,13 +86,13 @@ let showInventory = function() {
           " *";
         console.log(mainDisplay);
       }
-      start();
+      makePurchase();
     }
   );
   return;
 };
 
-function onLoad() {
+let onLoad = function() {
   console.log(" ");
   console.log("***********************************************************");
   console.log("* WELCOME TO SARYN'S YUMMIES --- WHOLESALE ORDER PLATFORM *");
@@ -130,192 +130,9 @@ function onLoad() {
         }
       });
   });
-}
+};
 
-function managerInterface() {
-  connection.query("SELECT * FROM products", function(err, results) {
-    if (err) throw err;
-    inq
-      .prompt([
-        {
-          name: "managerOptions",
-          type: "list",
-          message: "Select A Report",
-          choices: function() {
-            let pullReports = [
-              "Current Products",
-              "Low Inventory Alerts",
-              "Add Inventory",
-              "Add Product"
-            ];
-            return pullReports;
-          }
-        }
-      ])
-      .then(async function(answer) {
-        
-        if (answer.managerOptions === "Current Products") {
-          connection.query("SELECT product_name FROM products", function(
-            err,
-            results
-          ) {
-            
-            if (err) throw err;
-            console.log(results);
-            console.log(" ");
-            managerInterface();
-          });
-        } else if (answer.managerOptions === "Low Inventory Alerts") {
-          
-          connection.query(
-            "SELECT product_name, stock_quantity FROM products",
-            function(err, results) {
-              if (err) throw err;
-              for (i = 0; i < results.length; i++) {
-                if (results[i].stock_quantity < 100) {
-                  console.log(results[i]);
-                }
-              }
-              console.log(" ");
-              managerInterface();
-            }
-          );
-        } else if (answer.managerOptions === "Add Inventory") {
-          
-          if (err) throw err;
-          console.log(" ");
-          await inq
-            .prompt([
-              {
-                name: "product_name",
-                type: "rawlist",
-                pageSize: 15,
-                choices: function() {
-                  let choiceArray = [];
-                  for (let i = 0; i < results.length; i++) {
-                    choiceArray.push(results[i].product_name);
-                  }
-                  
-                  return choiceArray;
-                },
-                message: "Which Product From Inventory To Edit?",
-              },
-              {
-                name: "stock_quantity",
-                type: "input",
-                message: "Submit New Inventory Level",
-                validate: function(value) {
-                  if (isNaN(value) === false) {
-                    return true;
-                  }
-                  console.log("error - must be a number");
-                  return false;
-                }
-              }
-            ])
-            .then(function(answer) {
-              
-              let selectedProduct;
-              for (let i = 0; i < results.length; i++) {
-                if (results[i].product_name === answer.product_name) {
-                  selectedProduct = results[i];
-                }
-              }
-              let addInventory = function() {
-                connection.query(
-                  "UPDATE products SET ? WHERE ?",
-                  [
-                    {
-                      stock_quantity: answer.stock_quantity
-                    },
-                    {
-                      product_name: selectedProduct.product_name
-                    }
-                  ],
-                  function(err) {
-                    if (err) throw err;
-                  }
-                );
-                console.log("* Inventory Successfully Changed *");
-              };
-              addInventory();
-            });
-          managerInterface();
-        } else if (answer.managerOptions === "Add Product") {
-          
-          if (err) throw err;
-          console.log(" ");
-          await inq
-            .prompt([
-              {
-                name: "product_name",
-                type: "input",
-                message: "Submit Product Name"
-              },
-              {
-                name: "department_name",
-                type: "list",
-                message: "Select Department Tag",
-                pageSize: 15,
-                choices: function() {
-                  let choiceArray = [];
-                  for (let i = 0; i < results.length; i++) {
-                    choiceArray.push(results[i].department_name);
-                  }
-                  let format = choiceArray.filter(function(item, index){
-                    return choiceArray.indexOf(item) >= index;
-                  });
-                  let formattedChoices = Array.from(new Set(format));
-                  return formattedChoices;
-                }
-              },
-              {
-                name: "price",
-                type: "input",
-                message: "Submit $/kg",
-                validate: function(value) {
-                  if (isNaN(value) === false && value.length < 5) {
-                    return true;
-                  }
-                  return false;
-                }        
-              },
-              {
-                name: "stock_quantity",
-                type: "input",
-                message: "Submit Inventory Level"
-              }
-            ])
-            .then(function(answer) {
-              connection.query(
-                "INSERT INTO products SET ?",
-                {
-                  product_name: answer.product_name,
-                  department_name: answer.department_name,
-                  price: answer.price,
-                  stock_quantity: answer.stock_quantity
-                },
-                function(err) {
-                  if (err) throw err;
-                  console.log("* Product Successfully Created *");
-                  
-                }
-              );
-            });
-          managerInterface();
-        } else {
-          
-          console.log("Error: Input not recognized, please try again.");
-          console.log(" ");
-          managerInterface();
-        }
-      });
-  });
-}
-
-onLoad();
-
-function start() {
+let makePurchase = function() {
   connection.query("SELECT * FROM products", function(err, results) {
     if (err) throw err;
     inq
@@ -353,7 +170,7 @@ function start() {
         }
         if (selectedProduct.stock_quantity <= 0) {
           console.log("Sorry Item On BackOrder");
-          start();
+          makePurchase();
           return;
         }
         if (selectedProduct.stock_quantity <= 100) {
@@ -382,33 +199,31 @@ function start() {
         let costTotal = [answer.howMany * selectedProduct.price];
         console.log("Order placed successfully!");
         console.log(
-          "You bought [" +
+          "* You bought [x" +
             answer.howMany +
-            "] of [" +
+            "] units of [" +
             selectedProduct.product_name +
-            "]"
+            "] *"
         );
         console.log(
-          "Total Before Taxes = $" +
-            costTotal +
-            ". Successfully Charged To Account."
+          "* Total Before Taxes = $" + costTotal + ". Charged To Account. *"
         );
         newOrder();
       });
   });
-}
+};
 
-function newOrder() {
+let newOrder = function() {
   inq
     .prompt([
       {
-        name: "restart",
+        name: "remakePurchase",
         type: "confirm",
         message: "     ***      Place Another Order?       ***   "
       }
     ])
     .then(function(answer) {
-      if (answer.restart === true) {
+      if (answer.remakePurchase === true) {
         showInventory();
       } else {
         console.log("     ***   Thank You For Your Business   ***   ");
@@ -416,4 +231,6 @@ function newOrder() {
         connection.end();
       }
     });
-}
+};
+
+onLoad();
