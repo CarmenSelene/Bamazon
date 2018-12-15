@@ -37,11 +37,10 @@ let managerInterface = function() {
           ) {
             if (err) throw err;
             for (i = 0; i < results.length; i++) {
-              if (results[i].product_name) {
+              if (results[i].product_name != undefined) {
                 console.log(results[i].product_name);
               }
             }
-            console.log(results.product_name);
             console.log(" ");
             managerInterface();
           });
@@ -53,8 +52,10 @@ let managerInterface = function() {
               for (i = 0; i < results.length; i++) {
                 if (results[i].stock_quantity < 100) {
                   console.log(
-                    results[i].product_name + " [x" +
-                    results[i].stock_quantity + "] "
+                    results[i].product_name +
+                      " [x" +
+                      results[i].stock_quantity +
+                      "] "
                   );
                 }
               }

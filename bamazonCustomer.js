@@ -8,10 +8,13 @@ let connection = mysql.createConnection({
   user: "root",
   password: "password",
   database: "bamazon"
-  // multipleStatements: true
 });
 
+let costBasket = [];
+
 let showInventory = function() {
+  console.log("");
+  console.log("");
   connection.query(
     "SELECT item_id, product_name, price, stock_quantity FROM products",
     function(err, result, fields) {
@@ -133,6 +136,7 @@ let onLoad = function() {
 };
 
 let makePurchase = function() {
+  console.log("");
   connection.query("SELECT * FROM products", function(err, results) {
     if (err) throw err;
     inq
@@ -169,12 +173,20 @@ let makePurchase = function() {
           }
         }
         if (selectedProduct.stock_quantity <= 0) {
+          console.log("");
+          console.log("***********************");
           console.log("Sorry Item On BackOrder");
+          console.log("***********************");
+          console.log("");
           makePurchase();
           return;
         }
         if (selectedProduct.stock_quantity <= 100) {
+          console.log("");
+          console.log("***********************");
           console.log("* Stock Low - Extra Delivery Time Required *");
+          console.log("***********************");
+          console.log("");
         }
         convertedQuan = [
           selectedProduct.stock_quantity - parseInt(answer.howMany)
@@ -197,6 +209,16 @@ let makePurchase = function() {
         };
         updateDB();
         let costTotal = [answer.howMany * selectedProduct.price];
+        let basketTotal =0;
+        let basketCounter = function() {
+          costBasket.push(costTotal);
+          for (i = 0; i < costBasket.length; i++) {
+            basketTotal = (parseFloat(basketTotal) + parseFloat(costBasket[i]));
+          }
+        };
+        basketCounter();
+        console.log("");
+        console.log("***********************");
         console.log("Order placed successfully!");
         console.log(
           "* You bought [x" +
@@ -205,15 +227,19 @@ let makePurchase = function() {
             selectedProduct.product_name +
             "] *"
         );
+        console.log("* Item Total Before Taxes = $" + costTotal + " *");
         console.log(
-          "* Total Before Taxes = $" + costTotal + ". Charged To Account. *"
+          "* Basket Total Before Taxes = $" + basketTotal + " *"
         );
+        console.log("***********************");
+        console.log("");
         newOrder();
       });
   });
 };
 
 let newOrder = function() {
+  console.log("");
   inq
     .prompt([
       {
@@ -224,7 +250,10 @@ let newOrder = function() {
     ])
     .then(function(answer) {
       if (answer.remakePurchase === true) {
+        console.clear();
         showInventory();
+        console.log("");
+        console.log("");
       } else {
         console.log("     ***   Thank You For Your Business   ***   ");
         console.log("     ***         See You Soon!           ***   ");
